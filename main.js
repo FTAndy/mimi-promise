@@ -7,98 +7,103 @@ function Promise (executor) {
   }
   if (!(this instanceof Promise)) return new Promise(executor)
 
+  var self = this
   this.status = 'pending'
   this.executedData = undefined
   this.resolvedCallbacks = []
   this.rejectedCallbacks = []
+
+  function resolve(value) {
+    if (value instanceof Promise) {
+      return value.then(resolve, reject)
+    }
+    setTimeout(function() {
+      if (self.status !== 'pending') {
+        return
+      }
+      self.status = 'resolved'
+      self.executedData = value
+      for (var i = 0; i < self.resolvedCallbacks.length; i++) {
+        self.resolvedCallbacks[i](value)
+      }
+    })
+  }
+
+  function reject(reason) {
+    setTimeout(function() {
+      if (self.status !== 'pending') {
+        return
+      }
+      self.status = 'rejected'
+      self.executedData = reason
+      for (var i = 0; i < self.rejectedCallbacks.length; i++) {
+        self.rejectedCallbacks[i](reason)
+      }
+    })
+  }
+
   try {
-    executor(resolve.bind(this), reject.bind(this))
+    executor(resolve, reject)
   } catch(e) {
-    reject.bind(this)(e)
+    reject(e)
   }
-}
-
-function resolve(executedData) {
-  if (executedData instanceof Promise) {
-    return executedData.then(resolve, reject)
-  }
-  setTimeout(function() {
-    if (this.status == 'pending') {
-      this.status = 'resolved'
-      this.executedData = executedData
-      for (var i = 0; i < this.resolvedCallbacks.length; i++) {
-        this.resolvedCallbacks[i](executedData)
-      }
-    } else {
-      return
-    }
-  }.bind(this))
-}
-
-function reject(executedData) {
-  setTimeout(function() {
-    if (this.status == 'pending') {
-      this.status = 'rejectd'
-      this.executedData = executedData
-      for (var i = 0; i < this.rejectedCallbacks.length; i++) {
-        this.rejectedCallbacks[i](executedData)
-      }
-    } else {
-      return
-    }
-  }.bind(this))
 }
 
 // Then
 // promise.then(function() {})
 Promise.prototype.then = function(resolvedCallback, rejectedCallback) {
   var promise2
+  var self = this
 
   resolvedCallback = typeof resolvedCallback === 'function' ? resolvedCallback : function(value) { return value }
   rejectedCallback = typeof rejectedCallback === 'function' ? rejectedCallback : function(reason) { throw reason }
 
-  var resolvedResult = function (resolve, reject) {
-    setTimeout(function() {
-      try {
-        var x = resolvedCallback(this.executedData)
-        resolvePromise(promise2, x, resolve, reject )
-      } catch(e) {
-        return reject(e)
-      }
-    }.bind(this))
-  }.bind(this)
-
-  var rejectedResult = function (resolve, reject) {
-    setTimeout(function() {
-      try {
-        var x = rejectedCallback(this.executedData)
-        resolvePromise(promise2, x, resolve, reject)
-      } catch(e) {
-        return reject(e)
-      }
-    }.bind(this))
-  }.bind(this)
-
-  var pendingResult = function (resolve, reject) {
-    this.resolvedCallbacks.push(resolvedResult.bind(this, resolve, reject))
-    this.rejectedCallbacks.push(rejectedResult.bind(this, resolve, reject))
-  }.bind(this)
-
   if (this.status == 'resolved') {
-    return promise2 = new Promise(resolvedResult)
+    return promise2 = new Promise(function (resolve, reject) {
+      setTimeout(function() {
+        try {
+          var x = resolvedCallback(self.executedData)
+          resolvePromise(promise2, x, resolve, reject )
+        } catch(e) {
+          return reject(e)
+        }
+      })
+    })
   }
 
   if (this.status == 'rejected') {
-    return promise2 = new Promise(rejectedResult)
+    return promise2 = new Promise(function (resolve, reject) {
+      setTimeout(function() {
+        try {
+          var x = rejectedCallback(self.executedData)
+          resolvePromise(promise2, x, resolve, reject)
+        } catch(e) {
+          return reject(e)
+        }
+      })
+    })
   }
 
   if (this.status == 'pending') {
-    return promise2 = new Promise(pendingResult)
+    return promise2 = new Promise(function (resolve, reject) {
+      self.resolvedCallbacks.push(function (value) {
+        try {
+          var value = resolvedCallback(value)
+          resolvePromise(promise2, value, resolve, reject )
+        } catch(e) {
+          return reject(e)
+        }
+      })
+      self.rejectedCallbacks.push(function (reason) {
+        try {
+          var value = rejectedCallback(reason)
+          resolvePromise(promise2, value, resolve, reject)
+        } catch(e) {
+          return reject(e)
+        }
+      })
+    })
   }
-}
-
-Promise.prototype.catch = function(rejectedCallback) {
-  return this.then(null, rejectedCallback)
 }
 
 Promise.deferred = Promise.defer = function() {
@@ -157,12 +162,7 @@ function resolvePromise(promise, x, resolve, reject) {
 
 }
 
-try { // CommonJS compliance
-    module.exports = Promise
-}
-catch(e) {
-
-}
+module.exports = Promise
 
 
 
