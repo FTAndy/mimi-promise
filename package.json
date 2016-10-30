@@ -1,0 +1,11 @@
+{
+  "name": "mimi-promise",
+  "version": "1.0.0",
+  "main": "mimi-promise.js",
+  "repository": {
+    "url": "git@github.com:FTAndy/meme-promise.git",
+    "type": "git"
+  },
+  "author": "FTAndy <fortheandy@gmail.com>",
+  "license": "MIT"
+}
