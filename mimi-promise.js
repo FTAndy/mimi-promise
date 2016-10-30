@@ -41,9 +41,9 @@ MimiPromise.prototype.then = function(resolvedCallback, rejectedCallback) {
   if (this.state === PENDING) {
     this.multiPromise2.push(promise2)
   } else if (this.state === RESOLVED) {
-    processCallback(this, promise2, promise2.resolvedCallback)
+    asyncProcessCallback(this, promise2, promise2.resolvedCallback)
   } else if (this.state === REJECTED) {
-    processCallback(this, promise2, promise2.rejectedCallback)
+    asyncProcessCallback(this, promise2, promise2.rejectedCallback)
   }
 
   return promise2
@@ -56,14 +56,16 @@ function settlePromise(promise, executedState, executedData) {
   promise.state = executedState
   promise.executedData = executedData
 
-  const callbackType = executedState === RESOLVED ? "resolvedCallback" : "rejectedCallback"
+  if (promise.multiPromise2.length > 0) {
+    const callbackType = executedState === RESOLVED ? "resolvedCallback" : "rejectedCallback"
 
-  for (promise2 of promise.multiPromise2) {
-    processCallback(promise, promise2, promise2[callbackType])
+    for (promise2 of promise.multiPromise2) {
+      asyncProcessCallback(promise, promise2, promise2[callbackType])
+    }
   }
 }
 
-function processCallback(promise, promise2, callback) {
+function asyncProcessCallback(promise, promise2, callback) {
   asyncFn(() => {
     if (!callback) {
       settlePromise(promise2, promise.state, promise.executedData);
