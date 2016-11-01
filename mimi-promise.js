@@ -1,7 +1,7 @@
 const asyncFn = function() {
   if (typeof process === 'object' && process !== null && typeof(process.nextTick) === 'function')
     return process.nextTick
-  if (typeof(setImmediate === 'function'))
+  if (typeof(setImmediate) === 'function')
     return setImmediate
   return setTimeout
 }()
