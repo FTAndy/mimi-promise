@@ -1,3 +1,12 @@
+// The main logic of create Promise and process then callback is that:
+// 1. When sync process resolve/reject function in constructor,
+// don't do anything, just async process then callback function
+// 2. When async process resolve/reject function in constructor,
+// sync register all then callbacks to Promise instance.
+// Wait for the resolve/reject function processed, and async process all
+// then registered then callbaks
+
+// Simply choose a microtask
 const asyncFn = function() {
   if (typeof process === 'object' && process !== null && typeof(process.nextTick) === 'function')
     return process.nextTick
@@ -6,28 +15,31 @@ const asyncFn = function() {
   return setTimeout
 }()
 
+// States
 const PENDING = 'PENDING'
 
 const RESOLVED = 'RESOLVED'
 
 const REJECTED = 'REJECTED'
 
+// Constructor
 function MimiPromise(executor) {
   this.state = PENDING
   this.executedData = undefined
   this.multiPromise2 = []
 
-  resolve = (value) => {
+  const resolve = (value) => {
     settlePromise(this, RESOLVED, value)
   }
 
-  reject = (reason) => {
+  const reject = (reason) => {
     settlePromise(this, REJECTED, reason)
   }
 
   executor(resolve, reject)
 }
 
+//
 MimiPromise.prototype.then = function(resolvedCallback, rejectedCallback) {
   let promise2 = new MimiPromise(() => {})
 
