@@ -6,11 +6,15 @@
     "url": "git@github.com:FTAndy/mimi-promise.git",
     "type": "git"
   },
+  "scripts": {
+    "test": "promises-aplus-tests mimi-core.js"
+  },
   "author": "FTAndy <fortheandy@gmail.com>",
   "license": "MIT",
   "devDependencies": {
     "eslint": "^3.9.1",
     "eslint-config-airbnb-base": "^9.0.0",
-    "eslint-plugin-import": "^2.1.0"
+    "eslint-plugin-import": "^2.1.0",
+    "promises-aplus-tests": "^2.1.2"
   }
 }
